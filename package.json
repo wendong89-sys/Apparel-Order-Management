@@ -1,0 +1,28 @@
+{
+  "name": "garment-custom-order-system",
+  "version": "0.1.0",
+  "private": false,
+  "description": "服装定制订单管理系统：订单评分、审核分厂、生产节点、质检出货。",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "server": "node server/index.js",
+    "start": "npm run build && node server/index.js",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "test": "node --test",
+    "score": "node scripts/quality-gate.js",
+    "check": "npm run test && npm run build && npm audit --audit-level=moderate && npm run score"
+  },
+  "keywords": [
+    "garment",
+    "manufacturing",
+    "order-management",
+    "factory",
+    "服装定制"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^8.0.16"
+  }
+}

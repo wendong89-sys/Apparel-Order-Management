@@ -1,0 +1,15 @@
+services:
+  garment-order-system:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      DATA_DIR: /app/data
+      DEFAULT_ADMIN_PASSWORD: ${DEFAULT_ADMIN_PASSWORD:-admin123}
+    volumes:
+      - garment_order_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  garment_order_data:
