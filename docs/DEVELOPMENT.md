@@ -54,6 +54,7 @@ npm run check
 - `npm run build`：验证前端可打包
 - `npm audit --audit-level=moderate`：验证依赖没有中高风险告警
 - `npm run score`：执行项目 9 分验收
+- `npm run ui:score`：执行 UI 专业软件级验收
 
 任何一步失败，都不能作为正式版本发布。
 

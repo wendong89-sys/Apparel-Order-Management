@@ -213,13 +213,19 @@ function render() {
       ${renderSidebar()}
       <main class="main">
         <header class="topbar">
-          <h1>${pageTitle()}</h1>
+          <div>
+            <div class="page-kicker">Apparel Order Management</div>
+            <h1>${pageTitle()}</h1>
+          </div>
           <div class="topbar-actions">
-            <button class="btn ghost" data-action="export">导出 JSON</button>
-            <button class="btn primary" data-action="new-order">新建订单</button>
+            <button class="btn ghost" data-action="export" aria-label="导出订单 JSON">导出 JSON</button>
+            <button class="btn primary" data-action="new-order" aria-label="新建服装定制订单">新建订单</button>
           </div>
         </header>
-        <section class="content">${renderView()}</section>
+        <section class="content">
+          ${renderPageIntro()}
+          ${renderView()}
+        </section>
       </main>
     </div>
   `;
@@ -236,11 +242,15 @@ function renderSidebar() {
   return `
     <aside class="sidebar">
       <div class="brand">
-        <strong>服装定制系统</strong>
-        <span>订单评分 · 分厂 · 生产 · 质检</span>
+        <div class="brand-mark">OM</div>
+        <div>
+          <strong>服装定制系统</strong>
+          <span>订单评分 · 分厂 · 生产 · 质检</span>
+        </div>
       </div>
+      <div class="nav-section-label">工作区</div>
       <nav class="nav">
-        ${nav.map(([id, label]) => `<button class="${state.view === id ? "active" : ""}" data-view="${id}">${label}</button>`).join("")}
+        ${nav.map(([id, label]) => `<button class="${state.view === id ? "active" : ""}" data-view="${id}" aria-label="打开${label}页面"><span class="nav-dot"></span>${label}</button>`).join("")}
       </nav>
       <div class="sidebar-footer">
         <div class="tag">${api.enabled ? `API: ${api.user?.name || "已连接"}` : "本地模式"}</div>
@@ -277,24 +287,51 @@ function renderView() {
   return renderSettings();
 }
 
+function renderPageIntro() {
+  const orders = state.orders;
+  const riskCount = orders.filter((order) => scoreOrder(order).score < 9 || ["needs_info", "rework"].includes(order.status)).length;
+  const dueSoon = orders.filter((order) => {
+    if (!order.dueDate || ["completed", "shipped", "canceled"].includes(order.status)) return false;
+    const days = Math.ceil((new Date(order.dueDate) - new Date(formatDate(new Date()))) / 86400000);
+    return days >= 0 && days <= 7;
+  }).length;
+  return `
+    <div class="page-intro">
+      <div>
+        <div class="intro-label">生产协同总览</div>
+        <p>统一管理客户订单、9 分评分、工厂分配、生产节点、点数质检与出货。</p>
+      </div>
+      <div class="intro-summary" aria-label="当前业务摘要">
+        <span>风险订单 <strong>${riskCount}</strong></span>
+        <span>7 天内交期 <strong>${dueSoon}</strong></span>
+        <span>当前角色 <strong>${state.role}</strong></span>
+      </div>
+    </div>
+  `;
+}
+
 function renderDashboard() {
   const orders = state.orders;
   const avgScore = orders.length ? orders.reduce((sum, order) => sum + scoreOrder(order).score, 0) / orders.length : 0;
   const metrics = [
-    ["订单总数", orders.length],
-    ["平均评分", avgScore.toFixed(1)],
-    ["待审核", orders.filter((order) => order.status === "review").length],
-    ["待分厂", orders.filter((order) => order.status === "allocation").length],
-    ["生产中", orders.filter((order) => ["assigned", "accepted", "production", "inspection", "rework"].includes(order.status)).length]
+    ["订单总数", orders.length, "全部订单池"],
+    ["平均评分", avgScore.toFixed(1), "9 分可下发"],
+    ["待审核", orders.filter((order) => order.status === "review").length, "需管理员处理"],
+    ["待分厂", orders.filter((order) => order.status === "allocation").length, "选择 1/2 号工厂"],
+    ["生产中", orders.filter((order) => ["assigned", "accepted", "production", "inspection", "rework"].includes(order.status)).length, "工厂进行中"]
   ];
   return `
     <div class="grid metrics">
-      ${metrics.map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("")}
+      ${metrics.map(([label, value, meta]) => `<div class="metric"><span>${label}</span><strong>${value}</strong><em>${meta}</em></div>`).join("")}
     </div>
-    <div class="grid" style="margin-top:16px;">
-      <div class="panel">
+    ${renderWorkflowStrip()}
+    <div class="grid page-stack">
+      <div class="panel table-card">
         <div class="panel-header">
-          <h2>最近订单</h2>
+          <div>
+            <h2>最近订单</h2>
+            <p>按交期、评分、状态快速判断下一步动作</p>
+          </div>
           <button class="btn ghost" data-view="orders">查看全部</button>
         </div>
         <div class="table-wrap">${renderOrderTable(orders.slice(0, 8))}</div>
@@ -303,18 +340,42 @@ function renderDashboard() {
   `;
 }
 
+function renderWorkflowStrip() {
+  const steps = [
+    ["待审核", state.orders.filter((order) => order.status === "review").length],
+    ["待分厂", state.orders.filter((order) => order.status === "allocation").length],
+    ["生产中", state.orders.filter((order) => ["assigned", "accepted", "production"].includes(order.status)).length],
+    ["待质检", state.orders.filter((order) => ["inspection", "rework"].includes(order.status)).length],
+    ["待出货", state.orders.filter((order) => order.status === "ready_ship").length]
+  ];
+  return `
+    <div class="workflow-strip" aria-label="生产主流程">
+      ${steps.map(([label, count], index) => `
+        <div class="workflow-step">
+          <span>${String(index + 1).padStart(2, "0")}</span>
+          <strong>${label}</strong>
+          <em>${count} 单</em>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
 function renderOrders() {
   return `
     <div class="panel">
       <div class="panel-header">
-        <h2>订单列表</h2>
+        <div>
+          <h2>订单列表</h2>
+          <p>筛选订单、查看评分和生产状态</p>
+        </div>
         <div class="toolbar">
-          <input class="input" style="width:220px" placeholder="搜索订单/客户/联系人" data-filter="keyword" value="${escapeHtml(state.filters.keyword)}" />
-          <select class="select" style="width:150px" data-filter="status">
+          <input class="input toolbar-search" aria-label="搜索订单客户联系人" placeholder="搜索订单/客户/联系人" data-filter="keyword" value="${escapeHtml(state.filters.keyword)}" />
+          <select class="select toolbar-select" data-filter="status" aria-label="筛选订单状态">
             <option value="all">全部状态</option>
             ${Object.entries(statusLabels).map(([key, label]) => `<option value="${key}" ${state.filters.status === key ? "selected" : ""}>${label}</option>`).join("")}
           </select>
-          <select class="select" style="width:150px" data-filter="factory">
+          <select class="select toolbar-select" data-filter="factory" aria-label="筛选工厂">
             <option value="all">全部工厂</option>
             ${factories.map((factory) => `<option value="${factory.id}" ${state.filters.factory === factory.id ? "selected" : ""}>${factory.name}</option>`).join("")}
           </select>
@@ -328,7 +389,7 @@ function renderOrders() {
 function renderOrderTable(orders) {
   if (!orders.length) return `<div class="empty">暂无订单</div>`;
   return `
-    <table>
+    <table class="data-table">
       <thead>
         <tr>
           <th>订单编号</th>
@@ -347,15 +408,15 @@ function renderOrderTable(orders) {
           const result = scoreOrder(order);
           return `
             <tr>
-              <td><strong>${order.number}</strong></td>
+              <td><div class="order-primary"><strong>${order.number}</strong><span>${escapeHtml(order.contactName || "-")}</span></div></td>
               <td>${escapeHtml(order.customerName || "未填写")}</td>
               <td>${escapeHtml(order.category)}</td>
-              <td>${totalQuantity(order)}</td>
+              <td class="numeric">${totalQuantity(order)}</td>
               <td>${order.dueDate || "未填写"}</td>
               <td><span class="score ${scoreClass(result.score)}">${result.score}</span></td>
               <td><span class="status ${statusClass(order.status)}">${statusLabels[order.status]}</span></td>
               <td>${factoryName(order.factoryId)}</td>
-              <td><button class="btn ghost" data-open="${order.id}">打开</button></td>
+              <td><button class="btn ghost compact" data-open="${order.id}" aria-label="打开订单 ${order.number}">打开</button></td>
             </tr>
           `;
         }).join("")}
@@ -368,6 +429,10 @@ function renderOrderForm() {
   const order = createBlankOrder();
   return `
     <form class="sections" data-create-order>
+      <div class="form-banner">
+        <strong>新建生产订单</strong>
+        <span>保存后系统会自动评分，低于 9 分不能下发工厂。</span>
+      </div>
       ${renderBasicFields(order)}
       ${renderItemsEditor(order)}
       ${renderMaterialFields(order)}
@@ -386,6 +451,7 @@ function renderBasicFields(order) {
   return `
     <div class="section">
       <h2 class="section-title">订单基础信息</h2>
+      <p class="section-desc">客户、交期和负责人是提交审核的基础条件。</p>
       <div class="form-grid">
         ${field("客户名称", "customerName", order.customerName)}
         ${field("联系人", "contactName", order.contactName)}
@@ -410,6 +476,7 @@ function renderItemsEditor(order) {
   return `
     <div class="section">
       <h2 class="section-title">尺码数量</h2>
+      <p class="section-desc">至少录入一个产品和一个尺码数量，系统会自动计算合计。</p>
       <div class="table-wrap">
         <table class="size-table">
           <thead>
@@ -434,6 +501,7 @@ function renderMaterialFields(order) {
   return `
     <div class="section">
       <h2 class="section-title">面辅料与定制信息</h2>
+      <p class="section-desc">面料、辅料、logo 和定制位置越明确，工厂返工风险越低。</p>
       <div class="form-grid">
         ${field("面料主色", "material.mainColor", order.material.mainColor)}
         ${field("面料拼色", "material.contrastColor", order.material.contrastColor)}
@@ -462,6 +530,7 @@ function renderConfirmFields(order) {
   return `
     <div class="section">
       <h2 class="section-title">技术与采购确认</h2>
+      <p class="section-desc">技术和采购确认后，订单才具备进入生产的条件。</p>
       <div class="form-grid">
         ${field("技术负责人", "technical.owner", order.technical.owner)}
         ${selectField("技术确认", "technical.confirmed", String(order.technical.confirmed), [["true", "已确认"], ["false", "未确认"]])}
@@ -505,32 +574,35 @@ function renderDetail() {
   return `
     <div class="detail-layout">
       <div class="grid">
-        <div class="panel">
+        <div class="panel order-hero">
           <div class="panel-header">
-            <h2>${order.number} · ${escapeHtml(order.customerName || "未填写客户")}</h2>
+            <div>
+              <h2>${order.number}</h2>
+              <p>${escapeHtml(order.customerName || "未填写客户")} · ${escapeHtml(order.category)}</p>
+            </div>
             <span class="status ${statusClass(order.status)}">${statusLabels[order.status]}</span>
           </div>
           <div class="panel-body">
-            <div class="form-grid">
-              <div><strong>联系人</strong><br>${escapeHtml(order.contactName || "-")}</div>
-              <div><strong>电话</strong><br>${escapeHtml(order.phone || "-")}</div>
-              <div><strong>交期</strong><br>${order.dueDate || "-"}</div>
-              <div><strong>合计数量</strong><br>${totalQuantity(order)}</div>
-              <div><strong>品类</strong><br>${escapeHtml(order.category)}</div>
-              <div><strong>工厂</strong><br>${factoryName(order.factoryId)}</div>
-              <div><strong>技术</strong><br>${escapeHtml(order.technical.owner || "-")}</div>
-              <div><strong>采购</strong><br>${escapeHtml(order.procurement.owner || "-")}</div>
+            <div class="info-grid">
+              ${infoItem("联系人", escapeHtml(order.contactName || "-"))}
+              ${infoItem("电话", escapeHtml(order.phone || "-"))}
+              ${infoItem("计划交期", order.dueDate || "-")}
+              ${infoItem("合计数量", totalQuantity(order))}
+              ${infoItem("生产工厂", factoryName(order.factoryId))}
+              ${infoItem("技术负责人", escapeHtml(order.technical.owner || "-"))}
+              ${infoItem("采购负责人", escapeHtml(order.procurement.owner || "-"))}
+              ${infoItem("当前评分", `${result.score}/10`)}
             </div>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-header"><h2>生产节点</h2></div>
+          <div class="panel-header"><div><h2>生产节点</h2><p>工厂按节点更新进度，后整完成后进入质检。</p></div></div>
           <div class="panel-body">
             <div class="timeline">
               ${productionSteps.map(([key, label]) => `
                 <div class="step">
                   <div><strong>${label}</strong><span>${order.steps?.[key] || "未开始"}</span></div>
-                  <select class="select" style="width:120px" data-step="${key}">
+                  <select class="select step-select" data-step="${key}" aria-label="更新${label}状态">
                     ${["未开始", "进行中", "已完成"].map((value) => `<option ${order.steps?.[key] === value ? "selected" : ""}>${value}</option>`).join("")}
                   </select>
                 </div>
@@ -539,7 +611,7 @@ function renderDetail() {
           </div>
         </div>
         <div class="panel">
-          <div class="panel-header"><h2>操作日志</h2></div>
+          <div class="panel-header"><div><h2>操作日志</h2><p>保留审核、分厂、质检、出货等关键动作。</p></div></div>
           <div class="panel-body logs">
             ${order.logs.map((log) => `<div class="log-item"><time>${log.time} · ${log.actor}</time>${escapeHtml(log.action)}</div>`).join("") || `<div class="empty">暂无日志</div>`}
           </div>
@@ -554,15 +626,19 @@ function renderDetail() {
   `;
 }
 
+function infoItem(label, value) {
+  return `<div class="info-item"><span>${label}</span><strong>${value}</strong></div>`;
+}
+
 function renderScorePanel(order, result) {
   return `
     <div class="panel">
-      <div class="panel-header"><h2>订单评分</h2><span class="score ${scoreClass(result.score)}">${result.score}/10</span></div>
+      <div class="panel-header"><div><h2>订单评分</h2><p>9 分以上才允许下发工厂</p></div><span class="score ${scoreClass(result.score)}">${result.score}/10</span></div>
       <div class="panel-body score-card">
         <div class="score-ring" style="--score:${result.score}"><div><strong>${result.score}</strong><span>分</span></div></div>
         ${result.score < 9 ? `<div class="notice">当前低于 9 分，不能下发工厂。请补齐扣分项后重新审核。</div>` : `<div class="status ok">达到 9 分，可下发工厂</div>`}
         <ul class="check-list">
-          ${result.checks.map((item) => `<li>${item.pass ? "✓" : "×"} ${item.label}（${item.points} 分）</li>`).join("")}
+          ${result.checks.map((item) => `<li class="${item.pass ? "pass" : "fail"}"><span>${item.pass ? "通过" : "缺失"}</span>${item.label}（${item.points} 分）</li>`).join("")}
         </ul>
       </div>
     </div>
@@ -579,8 +655,8 @@ function renderActions(order, result) {
   const canComplete = canCompleteOrder(order);
   return `
     <div class="panel">
-      <div class="panel-header"><h2>流程动作</h2></div>
-      <div class="panel-body grid">
+      <div class="panel-header"><div><h2>流程动作</h2><p>按评分和状态自动锁定不可执行动作</p></div></div>
+      <div class="panel-body action-grid">
         <button class="btn primary" data-flow="submit" ${canSubmit ? "" : "disabled"}>提交审核</button>
         <button class="btn primary" data-flow="approve" ${canApprove ? "" : "disabled"}>审核通过</button>
         <select class="select" data-assign-factory>
@@ -602,10 +678,10 @@ function renderActions(order, result) {
 function renderInspectionPanel(order) {
   return `
     <div class="panel">
-      <div class="panel-header"><h2>点数质检</h2></div>
+      <div class="panel-header"><div><h2>点数质检</h2><p>点数、质检、照片齐全后才可出货</p></div></div>
       <div class="panel-body grid">
-        <label><input type="checkbox" data-inspection="counted" ${order.inspection.counted ? "checked" : ""}/> 已完成点数</label>
-        <label><input type="checkbox" data-inspection="passed" ${order.inspection.passed ? "checked" : ""}/> 质检通过</label>
+        <label class="check-control"><input type="checkbox" data-inspection="counted" ${order.inspection.counted ? "checked" : ""}/> 已完成点数</label>
+        <label class="check-control"><input type="checkbox" data-inspection="passed" ${order.inspection.passed ? "checked" : ""}/> 质检通过</label>
         <div class="field">
           <label>质检照片数量</label>
           <input class="input" type="number" min="0" data-inspection="photoCount" value="${Number(order.inspection.photoCount || 0)}" />
@@ -625,9 +701,10 @@ function renderFactory() {
     <div class="grid">
       <div class="grid metrics">
         ${factories.map((factory) => `
-          <div class="metric">
+          <div class="metric factory-metric">
             <span>${factory.name}</span>
             <strong>${state.orders.filter((order) => order.factoryId === factory.id && !["completed", "canceled"].includes(order.status)).length}</strong>
+            <em>${factory.strengths}</em>
           </div>
         `).join("")}
       </div>
@@ -791,16 +868,20 @@ async function connectApi() {
     let token = localStorage.getItem(API_TOKEN_KEY);
     let user = null;
     if (!token) {
-      const session = await apiRequest("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ username: "admin", password: "admin123" }),
-        skipAuth: true
-      });
+      const session = await loginApi();
       token = session.token;
       user = session.user;
-      localStorage.setItem(API_TOKEN_KEY, token);
     }
-    const orders = await apiRequest("/api/orders", { token });
+    let orders;
+    try {
+      orders = await apiRequest("/api/orders", { token });
+    } catch (error) {
+      localStorage.removeItem(API_TOKEN_KEY);
+      const session = await loginApi();
+      token = session.token;
+      user = session.user;
+      orders = await apiRequest("/api/orders", { token });
+    }
     api.enabled = true;
     api.user = user || { name: "系统管理员", role: "管理员" };
     api.error = "";
@@ -813,6 +894,16 @@ async function connectApi() {
   } finally {
     api.connecting = false;
   }
+}
+
+async function loginApi() {
+  const session = await apiRequest("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ username: "admin", password: "admin123" }),
+    skipAuth: true
+  });
+  localStorage.setItem(API_TOKEN_KEY, session.token);
+  return session;
 }
 
 async function syncOrdersToApi() {

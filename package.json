@@ -11,8 +11,9 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test": "node --test",
+    "ui:score": "node scripts/ui-quality-gate.js",
     "score": "node scripts/quality-gate.js",
-    "check": "npm run test && npm run build && npm audit --audit-level=moderate && npm run score"
+    "check": "npm run test && npm run build && npm audit --audit-level=moderate && npm run score && npm run ui:score"
   },
   "keywords": [
     "garment",

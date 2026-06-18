@@ -109,6 +109,7 @@ npm run build     # 打包静态文件
 npm run preview   # 预览打包结果
 npm run test      # 运行领域规则测试
 npm run score     # 运行 9 分项目验收
+npm run ui:score  # 运行 UI 专业软件级验收
 npm run check     # 测试 + 构建 + 安全审计 + 9 分验收
 ```
 
@@ -144,6 +145,7 @@ npm run score
 - [业务 LOOP](./LOOP.md)
 - [开发流程](./docs/DEVELOPMENT.md)
 - [评分体系](./docs/SCORECARD.md)
+- [UI 验收标准](./docs/UI_ACCEPTANCE.md)
 - [系统架构](./docs/ARCHITECTURE.md)
 - [API 文档](./docs/API.md)
 - [部署文档](./docs/DEPLOYMENT.md)

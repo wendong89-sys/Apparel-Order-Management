@@ -21,6 +21,7 @@
 - [ ] `npm run build` 通过。
 - [ ] `npm audit --audit-level=moderate` 通过。
 - [ ] `npm run score` 达到 9 分以上。
+- [ ] `npm run ui:score` 达到 9 分以上。
 - [ ] `npm run check` 通过。
 
 ## 文档

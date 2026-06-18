@@ -14,6 +14,7 @@ const requiredFiles = [
   "docs/ROADMAP.md",
   "docs/API.md",
   "docs/DEPLOYMENT.md",
+  "docs/UI_ACCEPTANCE.md",
   "Dockerfile",
   "docker-compose.yml",
   ".env.example",
@@ -24,6 +25,7 @@ const requiredFiles = [
   "server/store.js",
   "tests/domain.test.js",
   "tests/server.test.js",
+  "scripts/ui-quality-gate.js",
   ".github/workflows/ci.yml",
   "CONTRIBUTING.md",
   "docs/RELEASE_CHECKLIST.md",
@@ -96,7 +98,7 @@ const checks = [
   {
     name: "项目脚本包含 check 总验收",
     points: 0.8,
-    pass: ["\"test\"", "\"build\"", "\"score\"", "\"check\"", "\"server\"", "\"start\""].every((text) => has("package.json", text))
+    pass: ["\"test\"", "\"build\"", "\"score\"", "\"ui:score\"", "\"check\"", "\"server\"", "\"start\""].every((text) => has("package.json", text))
   },
   {
     name: "GitHub CI 自动执行总验收",
