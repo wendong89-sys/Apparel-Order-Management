@@ -39,7 +39,9 @@ async function route(req, res) {
   const url = new URL(req.url, "http://localhost");
 
   if (req.method === "OPTIONS") return sendNoContent(res);
-  if (url.pathname === "/api/health" && req.method === "GET") return sendJson(res, 200, { ok: true, mode: "api" });
+  if (url.pathname === "/api/health" && req.method === "GET") {
+    return sendJson(res, 200, { ok: true, mode: "api", locale: "zh-CN", message: "服务正常" });
+  }
   if (url.pathname === "/api/auth/login" && req.method === "POST") return handleLogin(req, res);
 
   if (url.pathname.startsWith("/api/")) {
@@ -258,6 +260,6 @@ function contentType(filePath) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const server = await createAppServer();
   server.listen(PORT, () => {
-    console.log(`Garment order system server running at http://127.0.0.1:${PORT}`);
+    console.log(`服装定制订单系统服务端已启动：http://127.0.0.1:${PORT}`);
   });
 }

@@ -214,11 +214,11 @@ function render() {
       <main class="main">
         <header class="topbar">
           <div>
-            <div class="page-kicker">Apparel Order Management</div>
+            <div class="page-kicker">服装定制订单管理</div>
             <h1>${pageTitle()}</h1>
           </div>
           <div class="topbar-actions">
-            <button class="btn ghost" data-action="export" aria-label="导出订单 JSON">导出 JSON</button>
+            <button class="btn ghost" data-action="export" aria-label="导出订单数据">导出订单</button>
             <button class="btn primary" data-action="new-order" aria-label="新建服装定制订单">新建订单</button>
           </div>
         </header>
@@ -242,7 +242,7 @@ function renderSidebar() {
   return `
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">OM</div>
+        <div class="brand-mark">定制</div>
         <div>
           <strong>服装定制系统</strong>
           <span>订单评分 · 分厂 · 生产 · 质检</span>
@@ -253,7 +253,7 @@ function renderSidebar() {
         ${nav.map(([id, label]) => `<button class="${state.view === id ? "active" : ""}" data-view="${id}" aria-label="打开${label}页面"><span class="nav-dot"></span>${label}</button>`).join("")}
       </nav>
       <div class="sidebar-footer">
-        <div class="tag">${api.enabled ? `API: ${api.user?.name || "已连接"}` : "本地模式"}</div>
+        <div class="tag">${api.enabled ? `服务端：${api.user?.name || "已连接"}` : "本地模式"}</div>
         ${api.error ? `<div class="notice">${escapeHtml(api.error)}</div>` : ""}
         <label>当前角色</label>
         <select class="select" data-role>
@@ -854,7 +854,7 @@ function exportJson() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `garment-orders-${formatDate(new Date())}.json`;
+  link.download = `服装订单-${formatDate(new Date())}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }

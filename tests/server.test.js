@@ -44,7 +44,7 @@ test("server exposes health, login, and authenticated orders", async () => {
   await withServer(async (baseUrl) => {
     const health = await fetch(`${baseUrl}/api/health`);
     assert.equal(health.status, 200);
-    assert.deepEqual(await health.json(), { ok: true, mode: "api" });
+    assert.deepEqual(await health.json(), { ok: true, mode: "api", locale: "zh-CN", message: "服务正常" });
 
     const token = await login(baseUrl);
     const orders = await fetch(`${baseUrl}/api/orders`, { headers: authHeaders(token) });
